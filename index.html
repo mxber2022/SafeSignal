@@ -1,0 +1,30 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>P2P Bluetooth Chat</title>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    #devices { list-style-type: none; padding: 0; }
+    #devices li { cursor: pointer; padding: 5px; border-bottom: 1px solid #ccc; }
+    #chat { border: 1px solid #000; height: 300px; overflow-y: scroll; margin-top: 10px; padding: 5px; }
+    #messageInput { width: 80%; padding: 8px; }
+    #sendButton { padding: 8px; }
+  </style>
+</head>
+<body>
+  <h1>P2P Bluetooth Chat</h1>
+  <div>
+    <h2>Discovered Devices</h2>
+    <ul id="devices"></ul>
+  </div>
+  <div>
+    <h2>Chat</h2>
+    <div id="chat"></div>
+    <input type="text" id="messageInput" placeholder="Type your message..." />
+    <button id="sendButton">Send</button>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>

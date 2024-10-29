@@ -1,15 +1,19 @@
 {
-  "name": "safesignal",
+  "name": "SafeSignal",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "main.js",
   "scripts": {
+    "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "repository": "https://github.com/mxber2022/SafeSignal.git",
+  "author": "mxber2022 <mxber2022@gmail.com>",
+  "license": "MIT",
   "devDependencies": {
+    "@abandonware/noble": "^1.9.2-25",
     "electron": "^33.0.2"
+  },
+  "dependencies": {
+    "noble": "^1.9.1"
   }
 }
