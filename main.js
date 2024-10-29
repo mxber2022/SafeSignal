@@ -4,7 +4,8 @@ const path = require('path');
 const noble = require('@abandonware/noble');
 
 let mainWindow;
-let discoveredDevices = {}; // Store discovered devices to avoid duplicates
+let discoveredDevices = {}; // Track discovered devices
+let connectedPeripheral = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -34,7 +35,6 @@ app.on('activate', () => {
   }
 });
 
-// Bluetooth handling with @abandonware/noble
 noble.on('stateChange', (state) => {
   if (state === 'poweredOn') {
     noble.startScanning();
@@ -47,33 +47,65 @@ noble.on('discover', (peripheral) => {
   const { uuid, advertisement } = peripheral;
   const deviceName = advertisement.localName || uuid;
 
-  // Check if the device is already in the list
   if (!discoveredDevices[uuid]) {
     discoveredDevices[uuid] = deviceName;
     console.log(`Discovered device: ${deviceName} (${uuid})`);
-    
-    // Send device info to renderer
     mainWindow.webContents.send('device-found', { uuid, deviceName });
   }
 });
 
-// Handle device connection and stop scanning after connection
 ipcMain.on('connect-to-device', (event, uuid) => {
   const peripheral = noble._peripherals[uuid];
   if (peripheral) {
-    noble.stopScanning(); // Stop scanning after a device is selected
+    noble.stopScanning();
     peripheral.connect((error) => {
       if (!error) {
         console.log(`Connected to ${uuid}`);
+        connectedPeripheral = peripheral;
         mainWindow.webContents.send('connected', uuid);
+
+        // Discover services and characteristics for receiving data
+        discoverServicesAndCharacteristics(peripheral);
       } else {
-        console.error(`Failed to connect to ${uuid}: ${error.message}`);
+        console.error(`Failed to connect: ${error.message}`);
       }
     });
   }
 });
 
-ipcMain.on('send-message', (event, message) => {
-  console.log(`Message to send: ${message}`);
-  mainWindow.webContents.send('message-received', `You: ${message}`);
-});
+// Function to discover services and characteristics
+function discoverServicesAndCharacteristics(peripheral) {
+  peripheral.discoverSomeServicesAndCharacteristics([], [], (error, services, characteristics) => {
+    if (error) {
+      console.error(`Failed to discover services/characteristics: ${error.message}`);
+      return;
+    }
+
+    console.log(`Discovered ${characteristics.length} characteristics`);
+
+    // Find the characteristic to receive messages (update UUID as necessary)
+    const messageCharacteristic = characteristics.find(
+      (characteristic) => characteristic.properties.includes('notify')
+    );
+
+    if (messageCharacteristic) {
+      messageCharacteristic.subscribe((error) => {
+        if (error) {
+          console.error(`Failed to subscribe: ${error.message}`);
+          return;
+        }
+
+        console.log('Subscribed to message characteristic');
+        
+        // Listen for data
+        messageCharacteristic.on('data', (data) => {
+          const message = data.toString('utf-8'); // Convert buffer to string
+          console.log(`Received message: ${message}`);
+          mainWindow.webContents.send('message-received', message);
+        });
+      });
+    } else {
+      console.log('No suitable characteristic found for receiving messages');
+    }
+  });
+}
