@@ -115,7 +115,7 @@ ipcMain.on('send-message', (event, message) => {
   if (messageCharacteristic) {
    // console.log("messageCharacteristic: ", messageCharacteristic);
     const buffer = Buffer.from(message, 'utf-8');
-    messageCharacteristic.write(buffer, true, (error) => {
+    messageCharacteristic.write(buffer, false, (error) => {
         console.log("buffer: ", buffer);
       if (error) console.error(`Failed to send message: ${error.message}`);
     });
