@@ -101,6 +101,12 @@ function discoverServicesAndCharacteristics(peripheral) {
                     console.log(`Received message: ${message}`);
                     mainWindow.webContents.send('message-received', message);
                 });
+
+                messageCharacteristic.on('read', (data) => {
+                    const message = data.toString('utf-8');
+                    console.log(`Received message: ${message}`);
+                    mainWindow.webContents.send('message-received', message);
+                });
             });
         } else {
             console.log('No suitable characteristic found for receiving messages');
