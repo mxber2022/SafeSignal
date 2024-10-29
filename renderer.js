@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   ipcRenderer.on('message-received', (event, message) => {
+    console.log("Received message event in renderer:", message);
     chatArea.innerHTML += `<p>Device: ${message}</p>`;
   });
 });

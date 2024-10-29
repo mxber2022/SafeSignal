@@ -72,48 +72,51 @@ ipcMain.on('connect-to-device', (event, uuid) => {
   }
 });
 
-// Function to discover services and characteristics
 function discoverServicesAndCharacteristics(peripheral) {
-  peripheral.discoverSomeServicesAndCharacteristics([], [], (error, services, characteristics) => {
-    if (error) {
-      console.error(`Failed to discover services/characteristics: ${error.message}`);
-      return;
-    }
-
-    console.log(`Discovered ${characteristics.length} characteristics`);
-
-    // Find the characteristic to receive messages (update UUID as necessary)
-    messageCharacteristic = characteristics.find(
-      (characteristic) => characteristic.properties.includes('notify')
-    );
-
-    if (messageCharacteristic) {
-      messageCharacteristic.subscribe((error) => {
-        if (error) {
-          console.error(`Failed to subscribe: ${error.message}`);
-          return;
-        }
-
-        console.log('Subscribed to message characteristic');
-
-        // Listen for data
-        messageCharacteristic.on('data', (data) => {
-          const message = data.toString('utf-8');
-          console.log(`Received message: ${message}`);
-          mainWindow.webContents.send('message-received', message);
+    peripheral.discoverSomeServicesAndCharacteristics([], [], (error, services, characteristics) => {
+      if (error) {
+        console.error(`Failed to discover services/characteristics: ${error.message}`);
+        return;
+      }
+  
+      console.log(`Discovered ${characteristics.length} characteristics`);
+  
+      // Find the characteristic to receive messages
+      messageCharacteristic = characteristics.find(
+        (characteristic) => characteristic.properties.includes('notify')
+      );
+  
+      if (messageCharacteristic) {
+        console.log('Found notify characteristic. Attempting to subscribe...');
+        messageCharacteristic.subscribe((error) => {
+          if (error) {
+            console.error(`Failed to subscribe to characteristic: ${error.message}`);
+            return;
+          }
+          console.log('Successfully subscribed to characteristic');
+  
+          // Listen for data
+          messageCharacteristic.on('data', (data) => {
+            const message = data.toString('utf-8');
+            console.log(`Received message: ${message}`);
+            mainWindow.webContents.send('message-received', message);
+          });
         });
-      });
-    } else {
-      console.log('No suitable characteristic found for receiving messages');
-    }
-  });
-}
+      } else {
+        console.log('No suitable characteristic found for receiving messages');
+      }
+    });
+  }
+  
 
 // Handle sending messages from the renderer process
 ipcMain.on('send-message', (event, message) => {
+    console.log("sending message");
   if (messageCharacteristic) {
+   // console.log("messageCharacteristic: ", messageCharacteristic);
     const buffer = Buffer.from(message, 'utf-8');
     messageCharacteristic.write(buffer, true, (error) => {
+        console.log("buffer: ", buffer);
       if (error) console.error(`Failed to send message: ${error.message}`);
     });
   }
