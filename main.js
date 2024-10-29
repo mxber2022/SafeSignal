@@ -4,8 +4,9 @@ const path = require('path');
 const noble = require('@abandonware/noble');
 
 let mainWindow;
-let discoveredDevices = {}; // Track discovered devices
+let discoveredDevices = {};
 let connectedPeripheral = null;
+let messageCharacteristic = null; // To store the writable characteristic
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -63,8 +64,6 @@ ipcMain.on('connect-to-device', (event, uuid) => {
         console.log(`Connected to ${uuid}`);
         connectedPeripheral = peripheral;
         mainWindow.webContents.send('connected', uuid);
-
-        // Discover services and characteristics for receiving data
         discoverServicesAndCharacteristics(peripheral);
       } else {
         console.error(`Failed to connect: ${error.message}`);
@@ -84,7 +83,7 @@ function discoverServicesAndCharacteristics(peripheral) {
     console.log(`Discovered ${characteristics.length} characteristics`);
 
     // Find the characteristic to receive messages (update UUID as necessary)
-    const messageCharacteristic = characteristics.find(
+    messageCharacteristic = characteristics.find(
       (characteristic) => characteristic.properties.includes('notify')
     );
 
@@ -96,10 +95,10 @@ function discoverServicesAndCharacteristics(peripheral) {
         }
 
         console.log('Subscribed to message characteristic');
-        
+
         // Listen for data
         messageCharacteristic.on('data', (data) => {
-          const message = data.toString('utf-8'); // Convert buffer to string
+          const message = data.toString('utf-8');
           console.log(`Received message: ${message}`);
           mainWindow.webContents.send('message-received', message);
         });
@@ -109,3 +108,13 @@ function discoverServicesAndCharacteristics(peripheral) {
     }
   });
 }
+
+// Handle sending messages from the renderer process
+ipcMain.on('send-message', (event, message) => {
+  if (messageCharacteristic) {
+    const buffer = Buffer.from(message, 'utf-8');
+    messageCharacteristic.write(buffer, true, (error) => {
+      if (error) console.error(`Failed to send message: ${error.message}`);
+    });
+  }
+});
